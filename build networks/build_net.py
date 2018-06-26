@@ -1,32 +1,49 @@
-"""
-This script is used to build brain networks, both
-static network and dynamic network. 
-"""
+import os
+import numpy as np
 
-import os, json, gzip, shutil
-from mmdps_old import brain_net
+from mmdps.proc import atlas
+from mmdps.util.loadsave import load_nii, save_csvmat
+from mmdps.util import path
+
 import mmdps_locale
 
-net = brain_net.BrainNet(net_config = {'template': 'brodmann_lr_3'}, raw_data_path = os.path.join(mmdps_locale.ChanggungAllFullPath, 'caochangsheng_20161027', 'Filtered_4DVolume.nii'))
-net.saveNet('E:/test_net/old/')
-exit()
-# calculate static and dynamic whole brain networks
-counter = 0
-total = len(list(os.listdir(mmdps_locale.HCPProcessedFullPath)))
-for subject in sorted(os.listdir(mmdps_locale.HCPProcessedFullPath)):
-	counter += 1
-	print('%s, %d/%d, %f\r' % (subject, counter, total, float(counter)/total))
-	subjectPath = os.path.join(mmdps_locale.HCPProcessedFullPath, subject)
-	# statInfo = os.stat(os.path.join(subjectPath, 'rfMRI_REST1_LR.nii.gz'))
-	# if statInfo.st_size < 10240:
-	# 	continue
-	# if not os.path.isfile(os.path.join(subjectPath, 'rfMRI_REST1_LR.nii')):
-	# 	with gzip.open(os.path.join(subjectPath, 'rfMRI_REST1_LR.nii.gz'), 'rb') as f_in:
-	# 		with open(os.path.join(subjectPath, 'rfMRI_REST1_LR.nii'), 'wb') as f_out:
-	# 			shutil.copyfileobj(f_in, f_out)
-	net = brain_net.BrainNet(net_config = {'template': 'brodmann_lr_2'}, raw_data_path = os.path.join(subjectPath, 'Filtered_4DVolume.nii'))
-	net.saveNet(os.path.join(subjectPath, 'bold_net'))
-	# dnet = brain_net.DynamicNet(net)
-	# dnet.generate_dynamic_nets()
-	# dnet.save_dynamic_nets(os.path.join(subjectPath, 'bold_net'))
-exit()
+class Calc:
+	def __init__(self, atlasobj, volumename, img, outfolder):
+		self.img = img
+		self.atlasobj = atlasobj
+		self.atlasimg = load_nii(atlasobj.get_volume(volumename)['niifile'])
+		self.outfolder = outfolder
+
+	def outpath(self, *p):
+		return os.path.join(self.outfolder, *p)
+
+	def gen_timeseries(self):
+		data = self.img.get_data()
+		atdata = self.atlasimg.get_data()
+		timepoints = data.shape[3]
+		timeseries = np.empty((atlasobj.count, timepoints))
+		for i, region in enumerate(atlasobj.regions):
+			regiondots = data[atdata==region, :]
+			regionts = np.mean(regiondots, axis=0)
+			timeseries[i, :] = regionts
+		return timeseries
+
+	def gen_net(self):
+		ts = self.gen_timeseries()
+		save_csvmat(self.outpath('timeseries.csv'), ts)
+		tscorr = np.corrcoef(ts)
+		save_csvmat(self.outpath('corrcoef.csv'), tscorr)
+		
+	def run(self):
+		self.gen_net()
+
+if __name__ == '__main__':
+	atlasobj = atlas.get('aicha')
+	volumename = '3mm'
+	for subject in sorted(os.listdir(mmdps_locale.ChanggungAllFullPath)):
+		print('building subject %s' % subject)
+		outfolder = os.path.join(mmdps_locale.ChanggungAllFullPath, subject, 'bold_net', 'aicha_3')
+		os.makedirs(outfolder, exist_ok = True)
+		img = load_nii(os.path.join(mmdps_locale.ChanggungAllFullPath, subject, 'Filtered_4DVolume.nii'))
+		c = Calc(atlasobj, volumename, img, outfolder)
+		c.run()
