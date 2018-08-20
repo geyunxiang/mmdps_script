@@ -4,6 +4,7 @@ and store them somewhere proper.
 """
 
 import os
+from mmdps.proc import netattr
 from mmdps_old import brain_net
 import mmdps_locale
 

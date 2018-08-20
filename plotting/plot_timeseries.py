@@ -1,8 +1,10 @@
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 
 from mmdps.proc import atlas
 from mmdps.util.loadsave import load_nii, save_csvmat
+from mmdps.util import path
 
 import mmdps_locale
 
@@ -20,12 +22,23 @@ class Calc:
 		data = self.img.get_data()
 		atdata = self.atlasimg.get_data()
 		timepoints = data.shape[3]
-		timeseries = np.empty((atlasobj.count, timepoints))
+		self.timeseries = np.empty((atlasobj.count, timepoints))
 		for i, region in enumerate(atlasobj.regions):
 			regiondots = data[atdata==region, :]
 			regionts = np.mean(regiondots, axis=0)
-			timeseries[i, :] = regionts
-		return timeseries
+			self.timeseries[i, :] = regionts
+
+	def plot(self, tick1, tick2):
+		idx1 = self.atlasobj.ticks.index(tick1)
+		idx2 = self.atlasobj.ticks.index(tick2)
+		plt.plot(range(1, 1+self.timeseries.shape[1]), self.timeseries[idx1, :] - np.mean(self.timeseries[idx1, :]))
+		plt.plot(range(1, 1+self.timeseries.shape[1]), self.timeseries[idx2, :] - np.mean(self.timeseries[idx2, :]))
+		corr = np.corrcoef(self.timeseries[(idx1, idx2), :])[0, 1]
+		plt.title('%s %s-%s connection %1.3f' % (atlasobj.name, tick1, tick2, corr))
+		plt.xlabel('Time points')
+		plt.ylabel('Centered time series')
+		plt.grid(True)
+		plt.show()
 
 	def gen_net(self):
 		ts = self.gen_timeseries()
@@ -37,12 +50,12 @@ class Calc:
 		self.gen_net()
 
 if __name__ == '__main__':
-	atlasobj = atlas.get('bnatlas')
+	atlasobj = atlas.get('brodmann_lr')
 	volumename = '3mm'
 	for subject in sorted(os.listdir(mmdps_locale.ChanggungAllFullPath)):
 		print('building subject %s' % subject)
-		outfolder = os.path.join(mmdps_locale.ChanggungAllFullPath, subject, 'bold_net', 'bnatlas_3')
-		os.makedirs(outfolder, exist_ok = True)
-		img = load_nii(os.path.join(mmdps_locale.ChanggungAllFullPath, subject, 'Filtered_4DVolume.nii'))
-		c = Calc(atlasobj, volumename, img, outfolder)
-		c.run()
+		img = load_nii(os.path.join(mmdps_locale.ChanggungAllFullPath, subject, 'pBOLD.nii'))
+		c = Calc(atlasobj, volumename, img, 'E:/Results/timeseries.png')
+		c.gen_timeseries()
+		c.plot('L4', 'R4')
+		exit()
