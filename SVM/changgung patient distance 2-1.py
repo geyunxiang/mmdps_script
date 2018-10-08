@@ -47,6 +47,10 @@ ChanggungPatientNets = io_utils.loadSpecificNets(mmdps_locale.ChanggungAllFullPa
 
 ChanggungHealthyNets = io_utils.loadSpecificNets(mmdps_locale.ChanggungAllFullPath, atlasobj, subjectList = os.path.join(mmdps_locale.ChanggungRootPath, 'normal_subjects.txt'))
 
+# Union of the first and second session
+ChanggungPatientNets2 = io_utils.loadSpecificNets(mmdps_locale.ChanggungAllFullPath, atlasobj, subjectList = os.path.join(mmdps_locale.ChanggungRootPath, 'SCI_pan_selected_all.txt', timeCase = 2))
+ChanggungHealthyNets2 = io_utils.loadSpecificNets(mmdps_locale.ChanggungAllFullPath, atlasobj, subjectList = os.path.join(mmdps_locale.ChanggungRootPath, 'normal_subjects.txt', timeCase = 2))
+
 testNets = io_utils.loadAllTemporalNets(mmdps_locale.ChanggungAllFullPath, 2, atlasobj, subjectList = os.path.join(mmdps_locale.ChanggungRootPath, 'SCI_pan_selected_all.txt'))
 testNameList = []
 for name in testNets:
@@ -56,7 +60,15 @@ print('len of ChanggungPatientNets: %d' % len(ChanggungPatientNets))
 print('len of testNets: %d' % len(testNets))
 
 # prepare all training 
-sig_connections = stats_utils.filter_sigdiff_connections(ChanggungPatientNets, ChanggungHealthyNets)
+sig_connections = []
+sig_connections1 = stats_utils.filter_sigdiff_connections(ChanggungPatientNets, ChanggungHealthyNets)
+# only first session
+sig_connections = sig_connections1
+
+# Union of the first and second session
+sig_connections2 = stats_utils.filter_sigdiff_connections(ChanggungPatientNets2, ChanggungHealthyNets2)
+sig_connections = list(set(sig_connections1 + sig_connections2))
+
 X1 = np.zeros((len(ChanggungHealthyNets), 1)) # healthy
 y1 = -1 * np.ones((len(ChanggungHealthyNets), 1)) # label = -1 for healthy
 X2 = np.zeros((len(ChanggungPatientNets), 1)) # patient
