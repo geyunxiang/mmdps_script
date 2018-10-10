@@ -48,8 +48,8 @@ ChanggungPatientNets = io_utils.loadSpecificNets(mmdps_locale.ChanggungAllFullPa
 ChanggungHealthyNets = io_utils.loadSpecificNets(mmdps_locale.ChanggungAllFullPath, atlasobj, subjectList = os.path.join(mmdps_locale.ChanggungRootPath, 'normal_subjects.txt'))
 
 # Union of the first and second session
-ChanggungPatientNets2 = io_utils.loadSpecificNets(mmdps_locale.ChanggungAllFullPath, atlasobj, subjectList = os.path.join(mmdps_locale.ChanggungRootPath, 'SCI_pan_selected_all.txt', timeCase = 2))
-ChanggungHealthyNets2 = io_utils.loadSpecificNets(mmdps_locale.ChanggungAllFullPath, atlasobj, subjectList = os.path.join(mmdps_locale.ChanggungRootPath, 'normal_subjects.txt', timeCase = 2))
+ChanggungPatientNets2 = io_utils.loadSpecificNets(mmdps_locale.ChanggungAllFullPath, atlasobj, subjectList = os.path.join(mmdps_locale.ChanggungRootPath, 'SCI_pan_selected_all.txt'), timeCase = 2)
+ChanggungHealthyNets2 = ChanggungHealthyNets
 
 testNets = io_utils.loadAllTemporalNets(mmdps_locale.ChanggungAllFullPath, 2, atlasobj, subjectList = os.path.join(mmdps_locale.ChanggungRootPath, 'SCI_pan_selected_all.txt'))
 testNameList = []
@@ -59,15 +59,19 @@ for name in testNets:
 print('len of ChanggungPatientNets: %d' % len(ChanggungPatientNets))
 print('len of testNets: %d' % len(testNets))
 
-# prepare all training 
-sig_connections = []
-sig_connections1 = stats_utils.filter_sigdiff_connections(ChanggungPatientNets, ChanggungHealthyNets)
+# prepare all training
+# sig_connections = []
+# sig_connections1 = stats_utils.filter_sigdiff_connections(ChanggungPatientNets, ChanggungHealthyNets)
 # only first session
-sig_connections = sig_connections1
+# sig_connections = sig_connections1
 
 # Union of the first and second session
-sig_connections2 = stats_utils.filter_sigdiff_connections(ChanggungPatientNets2, ChanggungHealthyNets2)
-sig_connections = list(set(sig_connections1 + sig_connections2))
+# sig_connections2 = stats_utils.filter_sigdiff_connections(ChanggungPatientNets2, ChanggungHealthyNets2)
+# sig_connections = list(set(sig_connections1 + sig_connections2))
+
+# Sensorimotor area
+sig_connections = stats_utils.get_sub_network_connections(atlasobj.sensorimotor_ticks, atlasobj)
+print('len of sig_connections: %d' % len(sig_connections))
 
 X1 = np.zeros((len(ChanggungHealthyNets), 1)) # healthy
 y1 = -1 * np.ones((len(ChanggungHealthyNets), 1)) # label = -1 for healthy
@@ -107,7 +111,7 @@ distanceMatrix = np.zeros((len(testNets), 2))
 w_norm = np.linalg.norm(classifier.coef_)
 idx = 0
 for key in testNameList:
-	print('processing subject ' + key)
+	# print('processing subject ' + key)
 	df = classifier.decision_function(Z[key])
 	distanceMatrix[idx, :] = df / w_norm
 	# distance = df / w_norm
@@ -134,7 +138,7 @@ plt.plot(x, b+m*x, '-')
 plt.title('2nd session correlation lower limb movement r = %1.3f, p = %1.3f' % pearsonr(x, y))
 plt.xlabel('distance')
 plt.ylabel('score')
-plt.savefig('C:/Users/geyx/Desktop/2018 paper/distance score/SCI 2-1/2nd session lower limb movement bnatlas.png')
+plt.savefig('C:/Users/geyx/Desktop/2018 paper/distance score/SCI sensorimotor 2-1/2nd session lower limb movement Brainnetome.png')
 plt.clf()
 
 # Plot the difference of distance and scores
@@ -147,4 +151,4 @@ plt.plot(x, b+m*x, '-')
 plt.title('Difference correlation lower limb movement r = %1.3f, p = %1.3f' % pearsonr(x, y))
 plt.xlabel('distance diff')
 plt.ylabel('score diff')
-plt.savefig('C:/Users/geyx/Desktop/2018 paper/distance score/SCI 2-1/Diff 2-1 lower limb movement bnatlas.png')
+plt.savefig('C:/Users/geyx/Desktop/2018 paper/distance score/SCI sensorimotor 2-1/Diff 2-1 lower limb movement Brainnetome.png')
